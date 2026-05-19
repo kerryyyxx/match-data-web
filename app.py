@@ -6,94 +6,28 @@ import chardet
 
 # 页面配置
 st.set_page_config(
-    page_title="数据匹配工具",
-    page_icon="🔍"
+    page_title="高级数据对齐大师",
+    page_icon="⚡",
+    layout="wide"  # 宽屏模式
 )
 
-# ===== 侧边栏：大白话使用说明 =====
+# ===== 侧边栏：大白话说明书 =====
 with st.sidebar:
-    st.header("📖 使用说明（大白话版）")
+    st.header("⚡ 快捷工具箱")
 
-    with st.expander("🎯 这工具是干啥的", expanded=True):
+    with st.container(border=True):
+        st.markdown("### 💡 本版视觉优化")
         st.markdown("""
-        **简单说**：就是Excel里VLOOKUP功能的升级版
-
-        比如你有：
-        - 📄 **大文件**：公司所有人的信息（姓名、手机号、身份证、部门...）
-        - 📄 **小文件**：今天要联系的客户名单（只有姓名）
-
-        这工具能自动从小文件里的姓名，去大文件里找到对应的手机号填上
-        """)
-
-    with st.expander("📁 第一步：上传文件"):
-        st.markdown("""
-        **大文件**（数据总表）
-        - 就是那个啥都有的表
-        - 比如全公司人员名单
-
-        **小文件**（待查询列表）
-        - 就是你想查的那批人
-        - 比如今天要打电话的客户
-        """)
-
-    with st.expander("⚙️ 第二步：告诉工具怎么查"):
-        st.markdown("""
-        **大文件里**：
-        - 用哪一列去查？（通常是姓名、工号、身份证）
-        - 想提取哪一列的结果？（通常是手机号、邮箱）
-
-        **小文件里**：
-        - 拿哪一列去问？（比如也是姓名）
-        - 结果放在哪一列？（可以写个新列名）
-
-        **高级选项**（一般不用动）：
-        - 去空格：把"张 三"变成"张三"再查
-        - 忽略大小写："ZHANG SAN"和"zhang san"算一样的
-        """)
-
-    with st.expander("🔄 第三步：处理同名的人"):
-        st.markdown("""
-        如果遇到重名的（比如两个叫张三的）：
-
-        工具会停下来问你"选哪个？"
-
-        它会显示这俩人其他的信息（比如身份证号、部门），
-        你根据这些信息选对的那个人就行。
-
-        选完继续往下查
-        """)
-
-    with st.expander("📥 最后：下载结果"):
-        st.markdown("""
-        匹配完会生成一个Excel文件：
-
-        你的小文件里会多出一列，就是查到的结果
-
-        没查到的人会空着
-        """)
-
-    with st.expander("⚠️ 常见问题"):
-        st.markdown("""
-        **Q：查出来怎么是空的？**
-        - 大文件里没这个人
-        - 或者名字写法不一样（比如大文件是"张三"，你写的是"张 三"）
-        - 可以试试高级选项里的"去空格"
-
-        **Q：怎么有好几个同名的人？**
-        - 正常，说明大文件里确实有重名的
-        - 工具会弹出来让你选，选对的就行
-
-        **Q：支持什么格式？**
-        - Excel (.xlsx)
-        - CSV (.csv)
-
-        **Q：卡住了怎么办？**
-        - 关掉重新打开
-        - 或者点"重新开始"
+        - 🟠 **橙色** 代表你的**数据库/总表**
+        - 🔵 **蓝色** 代表你的**待补全列表**
+        - 增加了卡片式布局，界面更清爽
         """)
 
     st.markdown("---")
-    st.caption("有问题随时重来，数据不会丢")
+    if st.button("🔄 彻底重置并清空缓存", use_container_width=True, type="secondary"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
 
 # 初始化session state
 if 'step' not in st.session_state:
@@ -111,7 +45,6 @@ if 'current_match_index' not in st.session_state:
 
 
 def detect_encoding(file):
-    """检测文件编码"""
     raw = file.read(10000)
     file.seek(0)
     result = chardet.detect(raw)
@@ -119,11 +52,11 @@ def detect_encoding(file):
 
 
 def read_file_with_encoding(uploaded_file):
-    """读取上传的文件（自动处理编码）"""
     try:
         if uploaded_file.name.endswith('.csv'):
             encoding = detect_encoding(uploaded_file)
             try:
+                uploaded_file.seek(0)
                 df = pd.read_csv(uploaded_file, encoding=encoding)
             except:
                 for enc in ['utf-8', 'gbk', 'gb2312', 'latin1']:
@@ -141,308 +74,283 @@ def read_file_with_encoding(uploaded_file):
         return None
 
 
-# 页面标题
-st.title("🔍 数据匹配工具")
+# ===== 顶部全局步骤条 =====
+st.title("⚡ 高级数据匹配与多列搬运工具")
+
+step_cols = st.columns(3)
+with step_cols[0]:
+    st.markdown("### :orange[1. 上传文件]" if st.session_state.step == 1 else "### 1. 上传文件")
+    st.progress(1.0 if st.session_state.step >= 1 else 0.0)
+with step_cols[1]:
+    st.markdown("### :blue[2. 对齐规则]" if st.session_state.step == 2 else "### 2. 对齐规则")
+    st.progress(1.0 if st.session_state.step >= 2 else 0.0)
+with step_cols[2]:
+    st.markdown("### :green[3. 核对与下载]" if st.session_state.step == 3 else "### 3. 核对与下载")
+    st.progress(1.0 if st.session_state.step >= 3 else 0.0)
+
 st.markdown("---")
 
-# 步骤1：上传文件
+# ===== 步骤1：上传文件 =====
 if st.session_state.step == 1:
-    st.header("📁 步骤1：上传文件")
+    st.markdown("### 📁 第一步：把你的两个表格传上来")
+    st.caption("支持 Excel (.xlsx) 和 CSV (.csv) 格式。文件只会留在你的浏览器本地处理，安全保密。")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("大文件（数据总表）")
-        large_file = st.file_uploader("上传包含完整信息的文件", type=['xlsx', 'csv'], key='large_uploader')
-        if large_file:
-            df = read_file_with_encoding(large_file)
-            if df is not None:
-                st.session_state.large_df = df
-                st.success(f"已加载：{len(df)}行，{len(df.columns)}列")
-                with st.expander("预览"):
-                    st.dataframe(df.head(5), use_container_width=True)
+        with st.container(border=True):
+            st.markdown("#### 🟠 1号大文件（数据总数据库）")
+            st.markdown("信息最全的底表，我们要从这里**查数据**并搬运你想要的部分。")
+            large_file = st.file_uploader("点击或拖拽上传总表", type=['xlsx', 'csv'], key='large_uploader',
+                                          label_visibility="collapsed")
+            if large_file:
+                df = read_file_with_encoding(large_file)
+                if df is not None:
+                    st.session_state.large_df = df
+                    st.metric(label="成功加载总表行数", value=f"{len(df)} 行")
+                    with st.expander("🔍 预览前5行数据内容"):
+                        st.dataframe(df.head(5), use_container_width=True)
 
     with col2:
-        st.subheader("小文件（待查询列表）")
-        small_file = st.file_uploader("上传需要查询的文件", type=['xlsx', 'csv'], key='small_uploader')
-        if small_file:
-            df = read_file_with_encoding(small_file)
-            if df is not None:
-                st.session_state.small_df = df
-                st.success(f"已加载：{len(df)}行，{len(df.columns)}列")
-                with st.expander("预览"):
-                    st.dataframe(df.head(5), use_container_width=True)
+        with st.container(border=True):
+            st.markdown("#### 🔵 2号小文件（待查询/待补全列表）")
+            st.markdown("你想更新的目标表，我们要往这里**填入新列**。")
+            small_file = st.file_uploader("点击或拖拽上传目标表", type=['xlsx', 'csv'], key='small_uploader',
+                                          label_visibility="collapsed")
+            if small_file:
+                df = read_file_with_encoding(small_file)
+                if df is not None:
+                    st.session_state.small_df = df
+                    st.metric(label="成功加载目标表行数", value=f"{len(df)} 行")
+                    with st.expander("🔍 预览前5行数据内容"):
+                        st.dataframe(df.head(5), use_container_width=True)
 
     if st.session_state.large_df is not None and st.session_state.small_df is not None:
-        st.markdown("---")
-        if st.button("下一步 ➡️", use_container_width=True):
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        if st.button("进入下一步：设置对齐规则 ➔", use_container_width=True, type="primary"):
             st.session_state.step = 2
             st.rerun()
 
-# 步骤2：设置匹配规则
+# ===== 步骤2：设置匹配规则 =====
 if st.session_state.step == 2:
-    st.header("⚙️ 步骤2：设置匹配规则")
+    st.markdown("### ⚙️ 第二步：连线思考，告诉工具怎么对齐")
+    st.caption("就像Excel里的VLOOKUP一样，我们需要指定两张表靠什么字段连接，以及要搬运什么过去。")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
-
     with col1:
-        st.subheader("大文件")
-        large_key = st.selectbox(
-            "用哪一列去匹配？（比如姓名、工号、身份证）",
-            st.session_state.large_df.columns.tolist(),
-            key="large_key"
-        )
-        large_result = st.selectbox(
-            "要提取哪一列的数据？（比如手机号、邮箱）",
-            st.session_state.large_df.columns.tolist(),
-            key="large_result"
-        )
+        with st.container(border=True):
+            st.markdown("#### 🟠 建立连接纽带")
+            large_key = st.selectbox(
+                "👉 拿 1号大文件 里的哪一列去和对方比对？",
+                st.session_state.large_df.columns.tolist(),
+                help="通常是唯一标识，比如姓名、工号、身份证、手机号等"
+            )
+            small_key = st.selectbox(
+                "👉 对应 2号小文件 里的哪一列？",
+                st.session_state.small_df.columns.tolist(),
+                help="两张表用来比对的这一列内容格式最好一致"
+            )
 
     with col2:
-        st.subheader("小文件")
-        small_key = st.selectbox(
-            "用哪一列作为查询条件？（比如也是姓名）",
-            st.session_state.small_df.columns.tolist(),
-            key="small_key"
-        )
+        with st.container(border=True):
+            st.markdown("#### 🎒🎅选择要搬运的内容")
+            large_results = st.multiselect(
+                "👉 你想从 1号大文件 里把哪几列的数据抓过来？",
+                st.session_state.large_df.columns.tolist(),
+                default=[st.session_state.large_df.columns.tolist()[1]] if len(
+                    st.session_state.large_df.columns) > 1 else None,
+                help="你可以勾选一个或者很多个列，它们未来会变成小文件里的新列"
+            )
 
-        # 结果存放位置
-        result_col_name = st.text_input(
-            "结果存放在哪一列？",
-            value="匹配结果",
-            help="输入新列名，或选择已有列名"
-        )
-
-    # 高级选项
-    with st.expander("高级选项（一般不用动）"):
-        strip_spaces = st.checkbox("匹配前去除空格", value=True, help="比如把'张 三'变成'张三'再查，避免因为空格查不到")
-        ignore_case = st.checkbox("忽略大小写", value=False, help="比如'ZHANG SAN'和'zhang san'算一样的")
-        duplicate_action = st.selectbox(
-            "遇到同名时",
-            ["标记待核对（推荐）", "取第一个", "全部列出"],
-            index=0,
-            help="选'标记待核对'：遇到重名的会弹出来让你选，最保险"
-        )
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("#### 🛠️ 细节强迫症选项（默认开启，一般不用动）")
+        c1, c2 = st.columns(2)
+        with c1:
+            strip_spaces = st.checkbox("🧼 自动去除单元格前后的空格", value=True,
+                                       help="防止因为‘张三 ’多了一个看不见的空格而匹配不上")
+        with c2:
+            ignore_case = st.checkbox("🔤 忽略英文字母大小写", value=False, help="让 ZHANGSAN 和 zhangsan 算同一个人")
 
     st.markdown("---")
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("开始匹配 🚀", type="primary", use_container_width=True):
+    if not large_results:
+        st.warning("⚠️ 别忘了：你必须至少选择一个想抓过来的结果列，否则没法干活哦。")
+    else:
+        if st.button("开始执行全量比对 🚀", type="primary", use_container_width=True):
             st.session_state.step = 3
             st.session_state.match_params = {
                 'large_key': large_key,
-                'large_result': large_result,
+                'large_results': large_results,
                 'small_key': small_key,
-                'result_col': result_col_name,
                 'strip_spaces': strip_spaces,
-                'ignore_case': ignore_case,
-                'duplicate_action': duplicate_action
+                'ignore_case': ignore_case
             }
+            st.session_state.match_results = None
             st.rerun()
 
-    # 返回按钮
-    if st.button("← 返回上一步", use_container_width=True):
+    if st.button("← 返回上一步修改上传的文件", use_container_width=True, type="secondary"):
         st.session_state.step = 1
         st.rerun()
 
-# 步骤3：执行匹配
+# ===== 步骤3：执行匹配与人工核对 =====
 if st.session_state.step == 3:
-    st.header("🔄 步骤3：执行匹配")
+    st.markdown("### 🔄 第三步：数据碰撞与智能核对")
 
-    # 首次匹配
+    # 首次进入，后台静默计算
     if st.session_state.match_results is None:
-        with st.spinner("正在匹配数据..."):
+        # 使用现代化 st.status 组件展现底层逻辑
+        with st.status("🚀 引擎启动，正在进行深度交叉比对...", expanded=True) as status:
+            params = st.session_state.match_params
             large_df = st.session_state.large_df.copy()
             small_df = st.session_state.small_df.copy()
 
-            large_key = st.session_state.match_params['large_key']
-            large_result = st.session_state.match_params['large_result']
-            small_key = st.session_state.match_params['small_key']
-            strip_spaces = st.session_state.match_params['strip_spaces']
-            ignore_case = st.session_state.match_params['ignore_case']
 
-
-            # 清洗函数
             def clean_text(x):
-                if pd.isna(x):
-                    return x
+                if pd.isna(x): return x
                 x = str(x)
-                if strip_spaces:
-                    x = x.strip()
-                if ignore_case:
-                    x = x.lower()
+                if params['strip_spaces']: x = x.strip()
+                if params['ignore_case']: x = x.lower()
                 return x
 
 
-            # 应用清洗
-            large_df['_key_clean'] = large_df[large_key].apply(clean_text)
-            small_df['_key_clean'] = small_df[small_key].apply(clean_text)
+            st.write("🧼 正在洗涤两边的数据主键（去空格/转大小写）...")
+            large_df['_key_clean'] = large_df[params['large_key']].apply(clean_text)
+            small_df['_key_clean'] = small_df[params['small_key']].apply(clean_text)
 
             matches = []
             pending = []
-
             total = len(small_df)
-            progress_bar = st.progress(0)
-            status_text = st.empty()
 
+            st.write("🧩 正在挨个扫描数据进行拼图对齐...")
             for idx, row in small_df.iterrows():
-                status_text.text(f"处理中：{idx + 1}/{total}")
-                progress_bar.progress((idx + 1) / total)
-
                 clean_key = row['_key_clean']
                 matched_rows = large_df[large_df['_key_clean'] == clean_key]
 
                 if len(matched_rows) == 0:
-                    matches.append({
-                        'index': idx,
-                        'status': 'not_found',
-                        'result': None
-                    })
+                    matches.append({'index': idx, 'status': 'not_found', 'data': None})
                 elif len(matched_rows) == 1:
-                    matches.append({
-                        'index': idx,
-                        'status': 'matched',
-                        'result': matched_rows.iloc[0][large_result]
-                    })
+                    res_data = matched_rows.iloc[0][params['large_results']].to_dict()
+                    matches.append({'index': idx, 'status': 'matched', 'data': res_data})
                 else:
-                    # 同名情况
                     candidates = []
                     for _, cand_row in matched_rows.iterrows():
-                        # 收集额外信息（身份证、学校等，如果有的话）
-                        extra_info = {}
-                        for col in large_df.columns:
-                            if col not in [large_key, large_result, '_key_clean']:
-                                extra_info[col] = cand_row[col]
-
                         candidates.append({
-                            'result': cand_row[large_result],
-                            'extra': extra_info
+                            'all_data': cand_row.to_dict(),
+                            'extract_data': cand_row[params['large_results']].to_dict()
                         })
-
                     pending.append({
                         'index': idx,
-                        'name': row[small_key],
+                        'name': row[params['small_key']],
                         'candidates': candidates
                     })
-
-                    matches.append({
-                        'index': idx,
-                        'status': 'pending',
-                        'result': None
-                    })
-
-            progress_bar.empty()
-            status_text.empty()
+                    matches.append({'index': idx, 'status': 'pending', 'data': None})
 
             st.session_state.match_results = matches
             st.session_state.pending_matches = pending
             st.session_state.current_match_index = 0
-
+            status.update(label="✨ 比对计算全部完成！", state="complete")
             st.rerun()
 
-    # 处理同名
+    # 如果有重名，卡片式弹窗核对
     if st.session_state.pending_matches:
-        st.warning(f"发现 {len(st.session_state.pending_matches)} 条同名记录需要确认")
+        current_idx = st.session_state.current_match_index
+        total_pending = len(st.session_state.pending_matches)
+        current_task = st.session_state.pending_matches[current_idx]
 
-        # 显示当前处理进度
-        st.progress((st.session_state.current_match_index + 1) / len(st.session_state.pending_matches))
+        st.markdown(f"#### ⚠️ 抓到重名数据！请帮人工甄别")
+        st.info(
+            f"在总表里找到了多个叫 **{current_task['name']}** 的记录。目前处理第 {current_idx + 1} / {total_pending} 个重名。")
 
-        current = st.session_state.pending_matches[st.session_state.current_match_index]
+        with st.container(border=True):
+            st.markdown(f"### 🔍 待确认的查询名字：:red[{current_task['name']}]")
+            st.markdown("**下面是系统在 1号大文件 里翻出来的这几个人，请根据他们的其他特征选出正确的一位：**")
 
-        st.markdown("---")
-        st.markdown(f"### 第 {st.session_state.current_match_index + 1}/{len(st.session_state.pending_matches)} 条")
-        st.markdown(f"**查询条件：{current['name']}**")
+            options = []
+            for i, cand in enumerate(current_task['candidates']):
+                info_summary = " | ".join(
+                    [f"【{k}】{v}" for k, v in cand['all_data'].items() if k != '_key_clean' and pd.notna(v)])
+                options.append(f"选项 {i + 1} ➔ {info_summary}")
 
-        st.markdown("**找到多个匹配，请选择正确的一个：**")
+            choice = st.radio("请点选正确的那一行：", options, index=0)
+            choice_idx = options.index(choice)
 
-        # 显示候选
-        options = []
-        for i, cand in enumerate(current['candidates']):
-            # 格式化额外信息
-            extra_parts = []
-            for k, v in cand['extra'].items():
-                if pd.notna(v) and str(v).strip():
-                    extra_parts.append(f"{k}:{v}")
-            extra_str = " | ".join(extra_parts) if extra_parts else ""
+            st.markdown("<br>", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("确认此人，继续 ➔", use_container_width=True, type="primary"):
+                    target_idx = current_task['index']
+                    selected_data = current_task['candidates'][choice_idx]['extract_data']
+                    for m in st.session_state.match_results:
+                        if m['index'] == target_idx:
+                            m['status'] = 'matched'
+                            m['data'] = selected_data
+                            break
 
-            option_text = f"{i + 1}. {cand['result']}"
-            if extra_str:
-                option_text += f" ({extra_str})"
-            options.append(option_text)
-
-        selected = st.radio("选择", options, key="pending_select", label_visibility="collapsed")
-        selected_idx = options.index(selected)
-
-        col1, col2, col3 = st.columns([1, 1, 2])
-        with col1:
-            if st.button("✅ 确认选择", use_container_width=True):
-                # 更新匹配结果
-                for match in st.session_state.match_results:
-                    if match['index'] == current['index']:
-                        match['status'] = 'matched'
-                        match['result'] = current['candidates'][selected_idx]['result']
-                        break
-
-                # 移动到下一个
-                if st.session_state.current_match_index < len(st.session_state.pending_matches) - 1:
-                    st.session_state.current_match_index += 1
-                    st.rerun()
-                else:
-                    st.session_state.pending_matches = []
+                    if current_idx + 1 < total_pending:
+                        st.session_state.current_match_index += 1
+                    else:
+                        st.session_state.pending_matches = []
                     st.rerun()
 
-        with col2:
-            if st.button("⏭️ 暂时跳过", use_container_width=True):
-                if st.session_state.current_match_index < len(st.session_state.pending_matches) - 1:
-                    st.session_state.current_match_index += 1
+            with col2:
+                if st.button("这个人我也不确定，先跳过 ⏭️", use_container_width=True):
+                    if current_idx + 1 < total_pending:
+                        st.session_state.current_match_index += 1
+                    else:
+                        st.session_state.pending_matches = []
                     st.rerun()
 
-    # 显示结果
-    if len(st.session_state.pending_matches) == 0 and st.session_state.match_results:
-        st.success("✅ 匹配完成！")
+    # 全部搞定，华丽展示并提供下载
+    elif st.session_state.match_results:
+        st.balloons()  # 庆祝气球
+        st.success("🎉 数据对齐及多列补全全部收工！")
 
-        # 统计
-        matched = len([m for m in st.session_state.match_results if m['status'] == 'matched'])
-        not_found = len([m for m in st.session_state.match_results if m['status'] == 'not_found'])
+        # 统计面板
+        matched_count = len([m for m in st.session_state.match_results if m['status'] == 'matched'])
+        not_found_count = len([m for m in st.session_state.match_results if m['status'] == 'not_found'])
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("成功匹配", matched)
-        col2.metric("未找到", not_found)
-        col3.metric("总计", len(st.session_state.match_results))
+        m_cols = st.columns(3)
+        m_cols[0].metric("✨ 成功补全数据", f"{matched_count} 行")
+        m_cols[1].metric("🔍 未找到匹配（留空）", f"{not_found_count} 行")
+        m_cols[2].metric("📊 目标表总计", f"{len(st.session_state.match_results)} 行")
 
-        # 生成结果
-        result_df = st.session_state.small_df.copy()
-        result_col = st.session_state.match_params['result_col']
-        result_df[result_col] = None
+        # 还原表格
+        final_df = st.session_state.small_df.copy()
+        target_cols = st.session_state.match_params['large_results']
 
-        for match in st.session_state.match_results:
-            if match['status'] == 'matched':
-                result_df.at[match['index'], result_col] = match['result']
+        for col in target_cols:
+            final_df[col] = None
 
-        st.markdown("---")
-        st.subheader("结果预览")
-        st.dataframe(result_df.head(10), use_container_width=True)
+        for m in st.session_state.match_results:
+            if m['status'] == 'matched' and m['data'] is not None:
+                for col in target_cols:
+                    final_df.at[m['index'], col] = m['data'].get(col)
 
-        # 下载
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            result_df.to_excel(writer, index=False, sheet_name='匹配结果')
+        st.markdown("<br>#### 📋 新表格前 10 行效果预览")
+        st.dataframe(final_df.head(10), use_container_width=True)
 
-        st.markdown("---")
-        st.download_button(
-            label="📥 下载结果文件",
-            data=output.getvalue(),
-            file_name="匹配结果.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
+        # 下载卡片
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("### 📥 成果导出")
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                final_df.to_excel(writer, index=False, sheet_name='对齐补全结果')
 
-        # 重新开始
-        st.markdown("---")
-        if st.button("🔄 重新开始", use_container_width=True):
-            for key in ['step', 'large_df', 'small_df', 'match_results', 'pending_matches', 'current_match_index',
-                        'match_params']:
-                if key in st.session_state:
-                    del st.session_state[key]
+            st.download_button(
+                label="💥 点击下载完美补全后的 Excel 表格 💥",
+                data=output.getvalue(),
+                file_name="匹配结果_已补全.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                type="primary"
+            )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 重新做一张新表", use_container_width=True, type="secondary"):
+            for key in ['step', 'match_results', 'pending_matches', 'match_params']:
+                if key in st.session_state: del st.session_state[key]
             st.rerun()
